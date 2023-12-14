@@ -133,8 +133,8 @@ def get_phi_by_series(z, n: int):
     if n == 0: return np.exp(z)
     
     res = np.zeros_like(z)
-    for k in range(100):
-        res += z**k/np.math.factorial(k+n)
+    for k in range(100):              
+        res += 1./np.math.factorial(k+n) * z**k
     
     return res
 
@@ -149,7 +149,7 @@ def get_phi_by_contour_integration(z, n: int):
     P = 32
     
     res = np.zeros_like(z, dtype="complex128")
-    R = min(np.abs(z) / 4, 1e-7)
+    R = np.minimum(np.abs(z) / 4, np.ones_like(z) * 1e-7)
     for k in range(P):
         theta = 2 * np.pi * k / P
         res += get_phi_by_series(z + R * np.exp(0.j * theta), n)
@@ -171,6 +171,22 @@ def get_phi_by_recursive_contour_integration(z, n: int):
                 1 / np.math.factorial(n-1) )/( z + R * np.exp(0.j * theta) )
         
     return res / P
+
+def get_phi_by_explicit_formula(z, n:int):
+    if n == 0:
+        return np.exp(z)
+    elif n == 1:
+        return (np.exp(z)-1)/z
+    elif n == 2:
+        return (np.exp(z)-1-z)/(z**2)
+    elif n == 3:
+        return (2*np.exp(z)-2-2*z-z**2)/(2*z**3)
+    elif n == 4:
+        return (6*np.exp(z)-6-6*z-3*z**2-z**3)/(6*z**4)
+    elif n == 5:
+        return (24*np.exp(z) -24 - 24*z - 12*z**2 - 4*z**3 - z**4)/(24*z**5)
+    raise Exception("explicit formula not implemented for n")
+
 
 def initPhi(z, n: int, get_phi):
     phi_res = np.zeros((n+1), dtype="complex128")
@@ -212,6 +228,13 @@ def generate_weights(N, tau_slice, dtau_slice, l):
     #print("w = ", w)
     return w
 
+def check_lim(l, t):
+    # super inefficient but what can i do...
+    # just for l = 0
+    if np.isclose([l], [0.0]):
+        return t
+    return (np.exp(l * t) - 1.) / l
+
 def ETDSDC(N, M, t, u0, ops):
     """
     ETD-SDC: F(phi) = l * phi + fn(phi); N time substeps Chebyshev nodes; M sweeps
@@ -241,7 +264,7 @@ def ETDSDC(N, M, t, u0, ops):
         # propagate initial solution
         for i in range(left+1,right):
             u_sdc[i] = u_sdc[i-1] * np.exp(l * dtau[i-1]) + \
-                        (np.exp(l * dtau[i-1]) - 1.) / l * fn(u_sdc[i-1])
+                        check_lim(l, dtau[i-1]) * fn(u_sdc[i-1])
     
         tau_slice = tau[left:right]
         dtau_slice = dtau[0:N+1]
@@ -252,23 +275,69 @@ def ETDSDC(N, M, t, u0, ops):
             
             for i in range(N+1): # time substeps
                 # φk+1i+1 =φk+1i ehiΛ + Λ^−1 [ehiΛ−1] (N(hτi,φk+1i) − N(hτi,φki))+Wi;i+1(φk)
-                #print(i, k, "φk+1i ehiΛ", u_sdc[left+i] * np.exp(l * dtau_slice[i]), \
-                #      "\n[ehiΛ−1]", (np.exp(l * dtau_slice[i]) - 1), \
-                #      "\n φk+1i - φki", u_sdc[left+i] - u_sdc_slice[i],\
-                #      "\nΛ^−1 [ehiΛ−1] (N(hτi,φk+1i) − N(hτi,φki))", (np.exp(l * dtau_slice[i]) - 1) / l * \
-                #                    (fn(u_sdc[left+i]) - fn(u_sdc_slice[i])), \
-                #      "Wi;i+1", np.sum( weights_block[i] * fn( u_sdc_slice )))
-                #sol = np.exp((-10 + 0.101j) * tau_slice[i])
-                #W = np.sum( weights_block[i] * fn( u_sdc_slice ))
-                #err = sol - u_sdc[left+i]
-                #print('%d %d solution %.5f %+.5fi; curr %.5f %+.5fi; err %.2e %+.2ei;W %.2e %+.2ei' % (i, k, sol.real, sol.imag, u_sdc[left+i].real, u_sdc[left+i].imag, err.real, err.imag, W.real, W.imag))
                 u_sdc[left+i+1] = u_sdc[left+i] * np.exp(l * dtau_slice[i]) + \
-                                    (np.exp(l * dtau_slice[i]) - 1) / l * \
+                                    check_lim(l, dtau_slice[i]) * \
                                     (fn(u_sdc[left+i]) - fn(u_sdc_slice[i])) + \
                                      np.sum( weights_block[i] * fn( u_sdc_slice ))
     
     return tau, u_sdc
 
+def plot_functions(plot_name, function_names, functions, shared_x):
+    """
+    Helper function: plots Re(func(x)) and Im(func(x)) on two subplots
+    """
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    fig.suptitle(plot_name, fontsize=10)
+    fig.set_size_inches((10,4))
+
+    for name, func in zip(function_names, functions):
+        ax1.plot(shared_x, func(shared_x).real, label=name, linestyle="--")
+        ax2.plot(shared_x, func(shared_x).imag, label=name, linestyle="--")
+    
+    ax1.legend()
+    ax1.set_xlabel("x")
+    ax1.set_ylabel("Re(f(x))")
+
+    ax2.legend()
+    ax2.set_xlabel("x")
+    ax2.set_ylabel("Im(f(x))")
+    plt.show()
+    
+    return
+
+def plot_functions_imag(plot_name, function_names, functions, shared_x):
+    """
+    Helper function: plots Re(func(x)) and Im(func(x)) on two subplots
+    """
+    fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2)
+    fig.suptitle(plot_name, fontsize=10)
+    fig.set_size_inches((10,8))
+
+    for name, func in zip(function_names, functions):
+        ax1.plot(shared_x.real, func(shared_x).real, label=name, linestyle="--")
+        ax2.plot(shared_x.real, func(shared_x).imag, label=name, linestyle="--")
+        ax3.plot(shared_x.imag, func(shared_x).real, label=name, linestyle="--")
+        ax4.plot(shared_x.imag, func(shared_x).imag, label=name, linestyle="--")
+    
+    ax1.legend()
+    ax1.set_xlabel("Re(x)")
+    ax1.set_ylabel("Re(f(x))")
+
+    ax2.legend()
+    ax2.set_xlabel("Re(x)")
+    ax2.set_ylabel("Im(f(x))")
+    
+    ax3.legend()
+    ax3.set_xlabel("Im(x)")
+    ax3.set_ylabel("Re(f(x))")
+    
+    ax4.legend()
+    ax4.set_xlabel("Im(x)")
+    ax4.set_ylabel("Im(f(x))")
+    
+    plt.show()
+    
+    return
 
 def plot_solutions(plot_name, modes, method_names, method_solutions, shared_t):
     """
