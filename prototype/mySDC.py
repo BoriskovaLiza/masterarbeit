@@ -206,31 +206,24 @@ def generate_weights(N, tau_slice, dtau_slice, l):
     # Buvoli (29) generates w_ij
     w = np.zeros((N+1, N+2), dtype="complex128")
 
-    #get_phi = get_phi_by_series
-    #if (np.abs(l) < 1.): 
-        #get_phi = get_phi_by_contour_integration
-    get_phi = get_phi_by_contour_integration
+    get_phi = get_phi_by_series
+    if (np.abs(l * dtau_slice[0]) < 1.): 
+        get_phi = get_phi_by_contour_integration
     
     for i in range(N+1):
         # [φ0(hiΛ), ... , φN (hiΛ)]
         phi = initPhi(l * dtau_slice[i], N+2, get_phi)
-        #print("i =", i, "tau =", tau_slice)
-        #print("dtau = ", dtau_slice)
         q = (tau_slice - tau_slice[i]) / dtau_slice[i]
-        #print("q =", q)
         a = weights(0, q, N+1)
-        #print("a =", a)
         # w[i][l] += a(i)φj+1(hiΛ)
         for l in range(N+2):
             for j in range(N+1):
                 w[i, l] += phi[j+1] * a[j, l]   
         w[i, :] *= dtau_slice[i]
-    #print("w = ", w)
     return w
 
 def check_lim(l, t):
-    # super inefficient but what can i do...
-    # just for l = 0
+    # just for l = 0 case
     if np.isclose([l], [0.0]):
         return t
     return (np.exp(l * t) - 1.) / l
@@ -278,7 +271,7 @@ def ETDSDC(N, M, t, u0, ops):
                 u_sdc[left+i+1] = u_sdc[left+i] * np.exp(l * dtau_slice[i]) + \
                                     check_lim(l, dtau_slice[i]) * \
                                     (fn(u_sdc[left+i]) - fn(u_sdc_slice[i])) + \
-                                     np.sum( weights_block[i] * fn( u_sdc_slice ))
+                                    np.sum( weights_block[i] * fn( u_sdc_slice ))
     
     return tau, u_sdc
 
