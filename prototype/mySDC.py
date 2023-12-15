@@ -123,28 +123,24 @@ def IMEXSDC(N, M, t, u0, ops):
 from fd_weights_explicit import get_fd_stencil
 from mpmath import gammainc
 
-def get_phi_by_integral(z, n: int):
-    # hits "recursion limit" sometimes, eg (n=2, z=-0.002)
-    if n == 0: return np.exp(z)
-    return np.exp(z) * z**(-n) * gammainc(n, 0, z, regularized=True)
+# def get_phi_by_integral(z, n: int):
+#     # hits "recursion limit" sometimes, eg (n=2, z=-0.002)
+#     if n == 0: return np.exp(z)
+#     return np.exp(z) * z**(-n) * gammainc(n, 0, z, regularized=True)
 
 def get_phi_by_series(z, n: int):
     # Buvoli (32)
     if n == 0: return np.exp(z)
     
-    res = np.zeros_like(z)
-    for i, z_ in enumerate(z):
-        if np.abs(z_) > 0.8:
-            res[i] = get_phi_by_explicit_formula(z_, n) 
-        else:
-            for k in range(100):              
-                res[i] += 1./np.math.factorial(k+n) * z_**k
+    res = np.zeros_like(z, dtype="complex128")
+    P = 100
+    
+    if np.abs(z) > 0.8:
+        res = get_phi_by_explicit_formula(z, n) 
+    else:
+        for k in range(P):
+            res += 1./np.math.factorial(k+n) * z**k
     return res
-
-def get_phi_by_recursion(z, n: int):
-    # for low n
-    if n == 0: return np.exp(z)
-    return (get_phi_by_recursion(z, n-1) - 1/np.math.factorial(n-1)) / z
 
 def get_phi_by_contour_integration(z, n: int):
     # Buvoli ~(34), table 2
@@ -341,6 +337,30 @@ def plot_solutions(plot_name, modes, method_names, method_solutions, shared_t):
     ax2.legend()
     ax2.set_xlabel("t")
     ax2.set_ylabel("Im(u(t))")
+    plt.show()
+    
+    return
+
+def plot_phi(plot_name, method_names, method_solutions, shared_t):
+    """
+    Helper function: plots Re(u) and Im(u) on two subplots
+    """
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    fig.suptitle(plot_name, fontsize=10)
+    fig.set_size_inches((10,4))
+
+    for name, solution in zip(method_names, method_solutions):
+        ax1.plot(shared_t, solution.real, label=name, linestyle="--")
+        ax2.plot(shared_t, solution.imag, label=name, linestyle="--")
+    
+    ax1.legend()
+    ax1.set_xlabel("t")
+    ax1.set_ylabel("Re(u(t))")
+
+    ax2.legend()
+    ax2.set_xlabel("t")
+    ax2.set_ylabel("Im(u(t))")
+    
     plt.show()
     
     return
