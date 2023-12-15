@@ -133,9 +133,12 @@ def get_phi_by_series(z, n: int):
     if n == 0: return np.exp(z)
     
     res = np.zeros_like(z)
-    for k in range(100):              
-        res += 1./np.math.factorial(k+n) * z**k
-    
+    for i, z_ in enumerate(z):
+        if np.abs(z_) > 0.8:
+            res[i] = get_phi_by_explicit_formula(z_, n) 
+        else:
+            for k in range(100):              
+                res[i] += 1./np.math.factorial(k+n) * z_**k
     return res
 
 def get_phi_by_recursion(z, n: int):
@@ -146,31 +149,19 @@ def get_phi_by_recursion(z, n: int):
 def get_phi_by_contour_integration(z, n: int):
     # Buvoli ~(34), table 2
     if n == 0: return np.exp(z)
-    P = 32
     
     res = np.zeros_like(z, dtype="complex128")
-    R = np.minimum(np.abs(z) / 4, np.ones_like(z) * 1e-7)
-    for k in range(P):
-        theta = 2 * np.pi * k / P
-        res += get_phi_by_series(z + R * np.exp(0.j * theta), n)
-        
-    return res / P
-
-def get_phi_by_recursive_contour_integration(z, n: int):
-    # Buvoli (34)
-    # doesnt really work
-    if n == 0: return np.exp(z)
-    P = 32
+    P = 256
+    R = 1.
     
-    res = np.zeros_like(z, dtype="complex128")
-    R = 1e-7
-    r = R / 2
-    for k in range(P):
-        theta = 2 * np.pi * k / P
-        res += ( get_phi_by_recursive_contour_integration(z + r * np.exp(0.j * theta), n-1) - \
-                1 / np.math.factorial(n-1) )/( z + R * np.exp(0.j * theta) )
-        
-    return res / P
+    if np.abs(z) > 0.8:
+        res = get_phi_by_explicit_formula(z, n) 
+    else:
+        for k in range(P):
+            theta = 2 * np.pi * k / P * 1.j
+            res += get_phi_by_explicit_formula(R * np.exp(theta) + z, n)
+        res /= P
+    return res
 
 def get_phi_by_explicit_formula(z, n:int):
     if n == 0:
@@ -205,14 +196,10 @@ def weights(z, qi, m):
 def generate_weights(N, tau_slice, dtau_slice, l):
     # Buvoli (29) generates w_ij
     w = np.zeros((N+1, N+2), dtype="complex128")
-
-    get_phi = get_phi_by_series
-    if (np.abs(l * dtau_slice[0]) < 1.): 
-        get_phi = get_phi_by_contour_integration
     
     for i in range(N+1):
         # [φ0(hiΛ), ... , φN (hiΛ)]
-        phi = initPhi(l * dtau_slice[i], N+2, get_phi)
+        phi = initPhi(l * dtau_slice[i], N+2, get_phi_by_contour_integration)
         q = (tau_slice - tau_slice[i]) / dtau_slice[i]
         a = weights(0, q, N+1)
         # w[i][l] += a(i)φj+1(hiΛ)
