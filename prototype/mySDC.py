@@ -163,15 +163,23 @@ def get_phi_by_explicit_formula(z, n:int):
     if n == 0:
         return np.exp(z)
     elif n == 1:
-        return (np.exp(z)-1)/z
+        return (np.exp(z) - 1)/z
     elif n == 2:
-        return (np.exp(z)-1-z)/(z**2)
+        return (np.exp(z) - 1 - z)/(z**2)
     elif n == 3:
-        return (2*np.exp(z)-2-2*z-z**2)/(2*z**3)
+        return (2*np.exp(z) - 2 - 2*z - z**2)/(2*z**3)
     elif n == 4:
-        return (6*np.exp(z)-6-6*z-3*z**2-z**3)/(6*z**4)
+        return (6*np.exp(z) - 6 - 6*z - 3*z**2 - z**3)/(6*z**4)
     elif n == 5:
-        return (24*np.exp(z) -24 - 24*z - 12*z**2 - 4*z**3 - z**4)/(24*z**5)
+        return (24*np.exp(z) - 24 - 24*z - 12*z**2 - 4*z**3 - z**4)/(24*z**5)
+    elif n == 6:
+        return (120*np.exp(z) - 120 - 120*z - 60*z**2 - 20*z**3 - 5*z**4 - z**5)/(120*z**6)
+    elif n == 7:
+        return (720*np.exp(z) - 720 - 720*z - 360*z**2 - 120*z**3 - 30*z**4 - 6*z**5 - z**6)/(720*z**7)
+    elif n == 8:
+        return (5040*np.exp(z) - 5040 - 5040*z - 2520*z**2 - 840*z**3 - 210*z**4 - 42*z**5 - 7*z**6 - z**7)/(5040*z**8)
+    elif n == 9:
+        return (40320*np.exp(z) - 40320 - 40320*z - 20160*z**2 - 6720*z**3 - 1680*z**4 - 336*z**5 - 56*z**6 - 8*z**7 - z**8)/(40320*z**9)
     raise Exception("explicit formula not implemented for n")
 
 
@@ -365,15 +373,16 @@ def plot_phi(plot_name, method_names, method_solutions, shared_t):
     
     return
 
-def benchmark(solver, solver_args, analytical_solution, folds):
+def benchmark(solver, solver_args, analytical_solution, folds, verbose=False):
     """
     Helper function: dt, dt/2, dt/4 timing + analytical() error L_inf
     """
     N, M, t, u0, op_list = solver_args
     bench_t = t.copy()
-    print(M, "sweeps")
-    print("timestep   |   max(E)   | cpu time [ms]")
-    print("----------------------------")
+    if verbose:
+        print(M, "sweeps")
+        print("    dt     |   max(E)   | cpu time [ms]")
+        print("---------------------------------------")
     errors = np.zeros((folds))
     timesteps = np.zeros((folds))
     
@@ -383,7 +392,8 @@ def benchmark(solver, solver_args, analytical_solution, folds):
         tau_solver, u_solver = solver(N, M, bench_t, u0, op_list)
         t_1 = time.time_ns()
         errors[fold] = np.max(np.abs(analytical_solution(tau_solver) - u_solver))
-        print("%.4e | %.4e | %.2f" % (np.abs(bench_t[1] - bench_t[0]), \
+        if verbose:
+            print("%.4e | %.4e | %.2f" % (np.abs(bench_t[1] - bench_t[0]), \
                                     np.max(np.abs(analytical_solution(tau_solver) - u_solver)), (t_1 - t_0) * 1e-6))
         
         bench_t /= 2
