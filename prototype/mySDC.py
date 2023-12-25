@@ -160,6 +160,7 @@ def get_phi_by_contour_integration(z, n: int):
     return res
 
 def get_phi_by_explicit_formula(z, n:int):
+    # switch to switch-case
     if n == 0:
         return np.exp(z)
     elif n == 1:
@@ -183,41 +184,46 @@ def get_phi_by_explicit_formula(z, n:int):
     raise Exception("explicit formula not implemented for n")
 
 
-def initPhi(z, n: int, get_phi):
-    phi_res = np.zeros((n+1), dtype="complex128")
-    for i in range(n+1):
-        phi_res[i] = get_phi(z, i)
+def initPhi(z, n: int):
+    phi_res = np.zeros((n), dtype="complex128")
+    for i in range(n):
+        # switch to contour integration if needed
+        phi_res[i] = get_phi_by_contour_integration(z, i)
     return phi_res
 
 def weights(z, qi, m):
     # generates a_ij matrix
     n = np.shape(qi)[0]
-    a = np.zeros((m, n))
-    for i in range(m):
-        a[i] = get_fd_stencil(i, z, qi)
+    a = np.zeros((n, m+1)) # n, m+1
+    for i in range(n):
+        a[:, i] = get_fd_stencil(i, z, qi)
     return a
 
 def generate_weights(N, tau_slice, dtau_slice, l):
     # Buvoli (29) generates w_ij
-    w = np.zeros((N+1, N+2), dtype="complex128")
+    w = np.zeros((N+1, N+2), dtype="complex128") 
+    phi0 = np.array(())
+    phi1 = np.array(())
     
-    for i in range(N+1):
+    for i in range(1, N+2):
         # [φ0(hiΛ), ... , φN (hiΛ)]
-        phi = initPhi(l * dtau_slice[i], N+2, get_phi_by_contour_integration)
-        q = (tau_slice - tau_slice[i]) / dtau_slice[i]
+        phi = initPhi(l * dtau_slice[i-1], N+3)
+        
+        phi0 = np.append(phi0, phi[0])
+        phi1 = np.append(phi1, dtau_slice[i-1] * phi[1])
+        q = (tau_slice - tau_slice[i-1]) / dtau_slice[i-1] 
         a = weights(0, q, N+1)
+        
         # w[i][l] += a(i)φj+1(hiΛ)
-        for l in range(N+2):
-            for j in range(N+1):
-                w[i, l] += phi[j+1] * a[j, l]   
-        w[i, :] *= dtau_slice[i]
-    return w
+        w[i-1][:] += dtau_slice[i-1] * np.dot(a, phi[1:])
+            
+    return w, phi0, phi1
 
-def check_lim(l, t):
-    # just for l = 0 case
-    if np.isclose([l], [0.0]):
-        return t
-    return (np.exp(l * t) - 1.) / l
+#def check_lim(l, t):
+#    # just for l = 0 case
+#    if np.isclose([l], [0.0]):
+#        return t
+#    return (np.exp(l * t) - 1.) / l 
 
 def ETDSDC(N, M, t, u0, ops):
     """
@@ -241,29 +247,26 @@ def ETDSDC(N, M, t, u0, ops):
     
     u_sdc = np.zeros((Ti), dtype=np.cfloat)
     u_sdc[0] = u0
+    # pre-generate weights, assuming timestep=Const
+    weights_block, phi0, phi1 = generate_weights(N, tau[0:N+2], dtau[0:N+1], l)
     for j in range(steps-1): # timesteps
         left = j*(N+1)
         right = (j+1)*(N+1)+1
-    
-        # propagate initial solution
-        for i in range(left+1,right):
-            u_sdc[i] = u_sdc[i-1] * np.exp(l * dtau[i-1]) + \
-                        check_lim(l, dtau[i-1]) * fn(u_sdc[i-1])
-    
+            
         tau_slice = tau[left:right]
         dtau_slice = dtau[0:N+1]
-        weights_block = generate_weights(N, tau_slice, dtau_slice, l)
+        
+        # propagate initial solution
+        for i in range(N+1):
+            u_sdc[left+i+1] = phi0[i] * u_sdc[left+i] + phi1[i] * fn(u_sdc[left+i])
     
         for k in range(M): # sweeps
             u_sdc_slice = np.copy(u_sdc[left:right]) # save φk
-            
+        
             for i in range(N+1): # time substeps
-                # φk+1i+1 =φk+1i ehiΛ + Λ^−1 [ehiΛ−1] (N(hτi,φk+1i) − N(hτi,φki))+Wi;i+1(φk)
-                u_sdc[left+i+1] = u_sdc[left+i] * np.exp(l * dtau_slice[i]) + \
-                                    check_lim(l, dtau_slice[i]) * \
-                                    (fn(u_sdc[left+i]) - fn(u_sdc_slice[i])) + \
-                                    np.sum( weights_block[i] * fn( u_sdc_slice ))
-    
+                # 
+                u_sdc[left+i+1] = phi0[i] * u_sdc[left+i] + phi1[i] * (fn(u_sdc[left+i]) - fn(u_sdc_slice[i])) + np.sum( weights_block[i] * fn( u_sdc_slice ))
+                                        
     return tau, u_sdc
 
 def plot_functions(plot_name, function_names, functions, shared_x):
