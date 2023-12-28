@@ -160,27 +160,39 @@ def get_phi_by_contour_integration(z, n: int):
     return res
 
 def get_phi_by_explicit_formula(z, n:int):
-    # switch to switch-case
-    if n == 0:
-        return np.exp(z)
-    elif n == 1:
-        return (np.exp(z) - 1)/z
-    elif n == 2:
-        return (np.exp(z) - 1 - z)/(z**2)
-    elif n == 3:
-        return (2*np.exp(z) - 2 - 2*z - z**2)/(2*z**3)
-    elif n == 4:
-        return (6*np.exp(z) - 6 - 6*z - 3*z**2 - z**3)/(6*z**4)
-    elif n == 5:
-        return (24*np.exp(z) - 24 - 24*z - 12*z**2 - 4*z**3 - z**4)/(24*z**5)
-    elif n == 6:
-        return (120*np.exp(z) - 120 - 120*z - 60*z**2 - 20*z**3 - 5*z**4 - z**5)/(120*z**6)
-    elif n == 7:
-        return (720*np.exp(z) - 720 - 720*z - 360*z**2 - 120*z**3 - 30*z**4 - 6*z**5 - z**6)/(720*z**7)
-    elif n == 8:
-        return (5040*np.exp(z) - 5040 - 5040*z - 2520*z**2 - 840*z**3 - 210*z**4 - 42*z**5 - 7*z**6 - z**7)/(5040*z**8)
-    elif n == 9:
-        return (40320*np.exp(z) - 40320 - 40320*z - 20160*z**2 - 6720*z**3 - 1680*z**4 - 336*z**5 - 56*z**6 - 8*z**7 - z**8)/(40320*z**9)
+    match n:
+        case 0:
+            return np.exp(z)
+        case 1:
+            return (np.exp(z) - 1)/z
+        case 2:
+            return (np.exp(z) - 1 - z)/(z**2)
+        case 3:
+            return (2*np.exp(z) - 2 - 2*z - z**2)/(2*z**3)
+        case 4:
+            return (6*np.exp(z) - 6 - 6*z - 3*z**2 - z**3)/(6*z**4)
+        case 5:
+            return (24*np.exp(z) - 24 - 24*z - 12*z**2 - 4*z**3 - z**4)/(24*z**5)
+        case 6:
+            return (120*np.exp(z) - 120 - 120*z - 60*z**2 - 20*z**3 - 5*z**4 - z**5)/(120*z**6)
+        case 7:
+            return (720*np.exp(z) - 720 - 720*z - 360*z**2 - 120*z**3 - 30*z**4 - 6*z**5 - z**6)/(720*z**7)
+        case 8:
+            return (5040*np.exp(z) - 5040 - 5040*z - 2520*z**2 - 840*z**3 - 210*z**4 - 42*z**5 - 7*z**6 - z**7)/(5040*z**8)
+        case 9:
+            return (40320*np.exp(z) - 40320 - 40320*z - 20160*z**2 - 6720*z**3 - 1680*z**4 - 336*z**5 - 56*z**6 - 8*z**7 - z**8)/(40320*z**9)
+        case 10:
+            return (362880*np.exp(z) - 362880 - 362880.0*z**1 - 181440.0*z**2 - 60480.0*z**3 - 15120.0*z**4 - 3024.0*z**5 - 504.0*z**6 - 72.0*z**7 - 9.0*z**8 - 1.0*z**9)/(362880*z**10)
+        case 11:
+            return (3628800*np.exp(z) - 3628800 - 3628800.0*z**1 - 1814400.0*z**2 - 604800.0*z**3 - 151200.0*z**4 - 30240.0*z**5 - 5040.0*z**6 - 720.0*z**7 - 90.0*z**8 - 10.0*z**9 - 1.0*z**10)/(3628800*z**11)
+        case 12:
+            return (39916800*np.exp(z) - 39916800 - 39916800.0*z**1 - 19958400.0*z**2 - 6652800.0*z**3 - 1663200.0*z**4 - 332640.0*z**5 - 55440.0*z**6 - 7920.0*z**7 - 990.0*z**8 - 110.0*z**9 - 11.0*z**10 - 1.0*z**11)/(39916800*z**12)
+        case 13:
+            return (479001600*np.exp(z) - 479001600 - 479001600.0*z**1 - 239500800.0*z**2 - 79833600.0*z**3 - 19958400.0*z**4 - 3991680.0*z**5 - 665280.0*z**6 - 95040.0*z**7 - 11880.0*z**8 - 1320.0*z**9 - 132.0*z**10 - 12.0*z**11 - 1.0*z**12)/(479001600*z**13)
+        case 14:
+            return (6227020800*np.exp(z) - 6227020800 - 6227020800.0*z**1 - 3113510400.0*z**2 - 1037836800.0*z**3 - 259459200.0*z**4 - 51891840.0*z**5 - 8648640.0*z**6 - 1235520.0*z**7 - 154440.0*z**8 - 17160.0*z**9 - 1716.0*z**10 - 156.0*z**11 - 13.0*z**12 - 1.0*z**13)/(6227020800*z**14)
+        case 15:
+            (87178291200*np.exp(z) - 87178291200 - 87178291200.0*z**1 - 43589145600.0*z**2 - 14529715200.0*z**3 - 3632428800.0*z**4 - 726485760.0*z**5 - 121080960.0*z**6 - 17297280.0*z**7 - 2162160.0*z**8 - 240240.0*z**9 - 24024.0*z**10 - 2184.0*z**11 - 182.0*z**12 - 14.0*z**13 - 1.0*z**14)/(87178291200*z**15)
     raise Exception("explicit formula not implemented for n")
 
 
@@ -401,5 +413,25 @@ def benchmark(solver, solver_args, analytical_solution, folds, verbose=False):
         
         bench_t /= 2
         bench_t = np.append(bench_t, (bench_t + bench_t[-1])[1:])
-    # plot_solutions("Benchmarking", [], ["analytical", "last-bench"], [analytical(tau), u], tau)
     return errors, timesteps
+
+def plot_slopes(plot_name, errors, slopes, N, M, folds, tau, savepath, M_start=1):
+    for i in range(M_start, M):
+        plt.plot(tau, errors[i], label='m=%d, ñ=%.2f' % (i, slopes[i].real), linestyle="-.", marker="*")
+        
+    plt.title(plot_name)
+    plt.grid()
+    plt.legend(loc=2)
+    plt.xlabel("dt")
+    plt.ylabel("E(φ)")
+    plt.xscale('log')
+    plt.yscale('log')
+    # turn off autoscaling and plot reference slopes
+    plt.autoscale(False)
+    
+    for i in range(M_start, M):
+        plt.plot([tau[0], tau[-1]], [errors[i][0], (errors[i][0] * (tau[-1] / tau[0])**(i+1))], color="0.5", alpha=0.5, linestyle="--")
+    
+    plt.savefig(savepath, dpi=600)
+    plt.show()
+    return
